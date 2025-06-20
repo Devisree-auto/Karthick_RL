@@ -1,40 +1,35 @@
 import requests
-import json
 
-# Configuration
+# Replace these with your actual values
 API_TOKEN = "your_mend_api_token"
-ORG_ID = "your_org_id"
+ORG_ID = "your_organization_id"
 PROJECT_ID = "your_project_id"
-BASE_URL = "https://api.mend.io"
 
-HEADERS = {
+url = "https://api.mend.io/api/v3/vulnerabilities"
+
+headers = {
     "Authorization": f"Bearer {API_TOKEN}",
     "Content-Type": "application/json"
 }
 
-def fetch_vulnerabilities(org_id, project_id):
-    url = f"{BASE_URL}/api/v1/projects/{project_id}/vulnerabilities?organizationId={org_id}"
-    response = requests.get(url, headers=HEADERS)
+params = {
+    "organizationId": ORG_ID,
+    "projectIds": PROJECT_ID,
+    "hasCve": "true",
+    "severity": "CRITICAL",
+    "limit": 50  # Optional: Fetch first 50 results
+}
 
-    if response.status_code == 200:
-        data = response.json()
-        vulnerabilities = data.get('vulnerabilities', [])
+response = requests.get(url, headers=headers, params=params)
 
-        # Filter only those with CVEs
-        cve_list = [v for v in vulnerabilities if v.get("cveIdentifiers")]
-
-        for v in cve_list:
-            print(f"Package: {v['packageName']}")
-            print(f"Severity: {v['severity']}")
-            print(f"CVEs: {', '.join(v['cveIdentifiers'])}")
-            print(f"Description: {v.get('description', 'N/A')}")
-            print(f"Link: {v.get('vulnerabilityURL', 'N/A')}")
-            print("-" * 50)
-
-        return cve_list
-    else:
-        print(f"Failed to fetch data: {response.status_code} - {response.text}")
-        return []
-
-if __name__ == "__main__":
-    fetch_vulnerabilities(ORG_ID, PROJECT_ID)
+if response.status_code == 200:
+    vulnerabilities = response.json().get("data", [])
+    for vuln in vulnerabilities:
+        print(f"Title      : {vuln.get('title')}")
+        print(f"Package    : {vuln.get('package', {}).get('name')}")
+        print(f"CVEs       : {', '.join(vuln.get('cveIdentifiers', []))}")
+        print(f"Severity   : {vuln.get('severity')}")
+        print(f"URL        : {vuln.get('url')}")
+        print("-" * 50)
+else:
+    print(f"Error: {response.status_code} - {response.text}")
